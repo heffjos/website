@@ -1,0 +1,55 @@
+---
+title: "hcp motion"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyverse)
+library(cifti)
+```
+
+```{r functions}
+get_cifti_connectome_edges <- function(fname) {
+# returns edges from binary mask, edges are returned columnwise
+
+  cat("reading file ", fname, "\n")
+  cii <- read_cifti(fname)
+  n_rois <- length(cii$Parcel)
+  
+  mask <- upper.tri(matrix(1:(n_rois*n_rois), n_rois, n_rois))
+  
+  return(cii$data[mask])
+}
+
+get_data <- function(connectome_directory, out_file) {
+  data <- tibble(connectomes = dir(connectome_directory, '.+_rvals.pconn.nii', full.names = TRUE),
+                 subject = str_split(basename(connectomes), '_', simplify = TRUE)[, 1],
+                 data = map(connectomes, get_cifti_connectome_edges))
+  
+  saveRDS(data, file = out_file)
+  
+  return(data)
+}
+```
+
+get_cifit_connectome_edges returns values in a columnwise fashion. Make sure parcel tsv is generated in same fashion.
+
+```{r, warning=FALSE}
+clean_directory <- "/rcc/stor1/depts/neurology/users/jheffernan/hcp/connectomes"
+no_clean_directory <- file.path(clean_directory, "no_clean")
+null_directory <- file.path(clean_directory, "null")
+motion_directory <- file.path(clean_directory, "motion")
+burgess_directory <- file.path(clean_directory, "burgess")
+burgess.gordon_directory <- file.path(clean_directory, "burgess+gordon")
+
+out_dir <- "/rcc/stor1/depts/neurology/users/jheffernan/hcp/markdowns"
+no_clean_file <- file.path(out_dir, "no_clean.rds")
+null_file <- file.path(out_dir, "null.rds")
+motion_file <- file.path(out_dir, "motion.rds")
+burgess_file <- file.path(out_dir, "burgess.rds")
+burgess.gordon_file <- file.path(out_dir, "burgess+gordon.rds")
+
+data <- get_data(burgess.gordon_directory, burgess.gordon_file)
+```
